@@ -1,0 +1,136 @@
+Store Procedure In T-SQL
+
+table is like this : 
+SELECT TOP (1000) [EmployeeCategoryID]       --int not null
+      ,[EmployeeCategoryName]		     --nvarchar(200) not null
+      ,[Description]				-nvarchar(200)  null
+      ,[CompanyID]			   --int not nnull
+      ,[Created]			  -- datetime not null
+      ,[Modified]			--datetime not null
+  FROM [EXTRA].[dbo].[MST_EmployeeCategory]
+
+
+insert SP:
+
+ALTER PROCEDURE [dbo].[PR_MST_EmployeeCategory_Insert]
+@EmployeeCategoryID   		int OUTPUT,
+		@Id			   		int OUTPUT,
+@EmployeeCategoryName   NVARCHAR(50),
+@Description            NVARCHAR(150),
+@CompanyID              INT,
+@Created                DATETIME,
+@Modified               DATETIME 
+AS
+INSERT INTO 
+	MST_EmployeeCategory
+	(
+	   [EmployeeCategoryName]
+      ,[Description]
+      ,[CompanyID]
+      ,[Created]
+      ,[Modified]
+	)
+VALUES 
+	(@EmployeeCategoryName,@Description,@CompanyID,@Created,@Modified)
+
+SET @Id = SCOPE_IDENTITY()
+
+----------------------------
+Update SP:
+
+ALTER PROCEDURE [dbo].[PR_MST_EmployeeCategory_Update]
+@EmployeeCategoryID     INT,
+@EmployeeCategoryName   NVARCHAR(50),
+@Description            NVARCHAR(150),
+@CompanyID              INT,
+@Created                DATETIME,
+@Modified               DATETIME 
+AS
+UPDATE MST_EmployeeCategory
+SET
+	
+	[EmployeeCategoryName] =@EmployeeCategoryName,
+	[Description]=@Description,
+	[CompanyID]=@CompanyID,
+	--[Created]=@Created,
+	[Modified]=ISNULL(@Modified,getdate())
+WHERE	
+	[EmployeeCategoryID]=@EmployeeCategoryID
+
+-----------------------------------
+DELETE SP:
+ALTER PROCEDURE [dbo].[PR_MST_EmployeeCategory_Delete]
+@EmployeeCategoryID     INT
+AS
+DELETE FROM	
+	MST_EmployeeCategory
+WHERE	
+	[Emplo
+
+-----------------------------
+SELECT SP BY PAGE ( PAGINATION & SORT BY EmployeeCategoryName)
+
+ALTER PROCEDURE [dbo].[PR_MST_EmployeeCategory_SelectPage]
+--@PageOffset				int,
+--@PageSize				int,
+--@EmployeeCategoryName   NVARCHAR(50),
+--@SortField				NVARCHAR(50),
+--@SortOrder				NVARCHAR(50)
+
+@PageOffset			int,
+@PageSize			int,
+@EmployeeCategoryName   NVARCHAR(50),
+@SortField		    NVARCHAR(50),
+@SortOrder			NVARCHAR(4)
+
+AS
+BEGIN
+
+SELECT 
+	TotalRecords = COUNT(*) OVER(),
+	[EmployeeCategoryID],
+	[EmployeeCategoryName],
+	[Description],
+	[CompanyID],
+	[Created],
+	[Modified]
+FROM	
+	MST_EmployeeCategory
+WHERE	
+	(@EmployeeCategoryName IS NULL OR [dbo].[MST_EmployeeCategory].[EmployeeCategoryName] LIKE '%' + @EmployeeCategoryName + '%')
+			
+ORDER BY 
+		case
+			when @SortOrder <> 'ASC' then ''
+			when @SortField = 'EmployeeCategoryName' then [EmployeeCategoryName]
+		end ASC,
+		case
+			when @SortOrder <> 'DESC' then ''
+			when @SortField = 'EmployeeCategoryName' then [EmployeeCategoryName]
+		end DESC,
+		case
+			when @SortOrder <> 'ASC' then ''
+			when @SortField = 'Description' then [Description]
+		end ASC,
+		case
+			when @SortOrder <> 'DESC' then ''
+			when @SortField = 'Description' then [Description]
+		end DESC,
+		case
+			when @SortOrder <> 'ASC' then ''
+			when @SortField = 'CompanyID' then [CompanyID]
+		end ASC,
+		case
+			when @SortOrder <> 'DESC' then ''
+			when @SortField = 'CompanyID' then [CompanyID]
+		end DESC,
+		
+		case
+			when @SortField is null then [dbo].[MST_EmployeeCategory].[EmployeeCategoryName]
+		end ASC	
+
+		OFFSET @PageOffset ROWS
+		FETCH NEXT @PageSize
+		ROWS ONLY;
+
+END;
